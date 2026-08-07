@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import os
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
@@ -12,7 +13,10 @@ st.write("Predict likelihood of depression using a Decision Tree model.")
 # 1. Load Data
 @st.cache_data
 def load_and_prep_data():
-    file_path = 'Student Mental health.csv'
+    # Dynamically build path relative to this script file
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(script_dir, 'Student Mental health.csv')
+    
     df = pd.read_csv(file_path)
 
     # Clean string columns
@@ -68,7 +72,7 @@ try:
     
     user_inputs = {}
 
-    # Validation: Restrict Age to 18–24
+    # Age input validated strictly between 18 and 24
     user_inputs['Age'] = st.number_input(
         "Age (18 to 24)", 
         min_value=18, 
