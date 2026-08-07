@@ -12,7 +12,7 @@ st.write("Predict likelihood of depression using a Decision Tree model.")
 # 1. Load Data
 @st.cache_data
 def load_and_prep_data():
-    file_path = 'Student Mental health.csv'
+    file_path = '"C:\\Users\\ASUS\\Downloads\\asgmt\\Student Mental health.csv"'
     df = pd.read_csv(file_path)
 
     # Clean string columns
