@@ -83,7 +83,7 @@
         <mxCell id="DjCBwEqnnknbJD_PeIgT-81" edge="1" parent="1" source="DjCBwEqnnknbJD_PeIgT-22" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;" target="DjCBwEqnnknbJD_PeIgT-80">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="DjCBwEqnnknbJD_PeIgT-22" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Year of Study &amp;lt;= 2 ?" vertex="1">
+        <mxCell id="DjCBwEqnnknbJD_PeIgT-22" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Year of Study &amp;gt;= 3 ?" vertex="1">
           <mxGeometry height="60" width="120" x="1369.5" y="1360" as="geometry" />
         </mxCell>
         <mxCell id="DjCBwEqnnknbJD_PeIgT-26" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="False" vertex="1">

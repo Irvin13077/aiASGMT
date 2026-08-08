@@ -32,9 +32,9 @@ def predict_custom_tree(inputs):
     # Root: Age >= 20 ?
     path_nodes.append("age >= 20 ?")
     if inputs['age'] >= 20:
-        # Node: R_Year
-        path_nodes.append("Year of Study <= 2 ? (R)")
-        if inputs['year'] <= 2:
+        # Node: R_Year (Updated to >= 3)
+        path_nodes.append("Year of Study >= 3 ? (R)")
+        if inputs['year'] >= 3:
             path_nodes.append("Depress (R_Year)")
             return "Depress", path_nodes
         else:
@@ -100,7 +100,7 @@ def render_matplotlib_tree(active_path):
         "No Depress (L_Treatment)": (-14, 1),
 
         # Right Branch (Age >= 20 True)
-        "Year of Study <= 2 ? (R)": (4, 6),
+        "Year of Study >= 3 ? (R)": (4, 6),
         "Depress (R_Year)": (8, 5),
         "CGPA <= 2.0 ? (R)": (2, 5),
         "Depress (R_CGPA)": (4, 4),
@@ -130,7 +130,7 @@ def render_matplotlib_tree(active_path):
         "Depress (L_Treatment)": "Depress",
         "No Depress (L_Treatment)": "No Depress",
 
-        "Year of Study <= 2 ? (R)": "Year of Study <= 2 ?",
+        "Year of Study >= 3 ? (R)": "Year of Study >= 3 ?",
         "Depress (R_Year)": "Depress",
         "CGPA <= 2.0 ? (R)": "CGPA <= 2.0 ?",
         "Depress (R_CGPA)": "Depress",
@@ -148,7 +148,7 @@ def render_matplotlib_tree(active_path):
     edges = [
         # Root splits
         ("age >= 20 ?", "CGPA <= 2.0 ? (L)", "False"),
-        ("age >= 20 ?", "Year of Study <= 2 ? (R)", "True"),
+        ("age >= 20 ?", "Year of Study >= 3 ? (R)", "True"),
 
         # Left Subtree splits
         ("CGPA <= 2.0 ? (L)", "Depress (L_CGPA)", "True"),
@@ -163,8 +163,8 @@ def render_matplotlib_tree(active_path):
         ("Treatment ? (L)", "No Depress (L_Treatment)", "False"),
 
         # Right Subtree splits
-        ("Year of Study <= 2 ? (R)", "Depress (R_Year)", "True"),
-        ("Year of Study <= 2 ? (R)", "CGPA <= 2.0 ? (R)", "False"),
+        ("Year of Study >= 3 ? (R)", "Depress (R_Year)", "True"),
+        ("Year of Study >= 3 ? (R)", "CGPA <= 2.0 ? (R)", "False"),
         ("CGPA <= 2.0 ? (R)", "Depress (R_CGPA)", "True"),
         ("CGPA <= 2.0 ? (R)", "Marital ? (R)", "False"),
         ("Marital ? (R)", "Depress (R_Marital)", "True"),
@@ -239,7 +239,7 @@ col1, col2 = st.columns(2)
 with col1:
     age = st.number_input("Age", min_value=17, max_value=30, value=20)
     
-    # Strictly enforce numeric/float input for CGPA
+    # Enforcing strict numeric/float input for CGPA
     cgpa = st.number_input(
         "Enter CGPA (0.00 to 4.00)", 
         min_value=0.0, 
