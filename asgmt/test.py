@@ -23,16 +23,11 @@ def is_yes(val):
 
 # --- Custom Decision Tree Logic ---
 def predict_custom_tree(inputs):
-    """
-    Evaluates exact logic from the updated flowchart image:
-    Right branch = True, Left branch = False
-    """
     path_nodes = []
     
     # Root: Age >= 20 ?
     path_nodes.append("age >= 20 ?")
     if inputs['age'] >= 20:
-        # Node: R_Year (Updated to >= 3)
         path_nodes.append("Year of Study >= 3 ? (R)")
         if inputs['year'] >= 3:
             path_nodes.append("Depress (R_Year)")
@@ -43,45 +38,44 @@ def predict_custom_tree(inputs):
                 path_nodes.append("Depress (R_CGPA)")
                 return "Depress", path_nodes
             else:
-                return traverse_health_subtree(inputs, path_nodes, prefix="R_")
+                return traverse_health_subtree(inputs, path_nodes, prefix="R")
     else:
-        # Node: L_CGPA
         path_nodes.append("CGPA <= 2.0 ? (L)")
         if inputs['cgpa'] <= 2.0:
             path_nodes.append("Depress (L_CGPA)")
             return "Depress", path_nodes
         else:
-            return traverse_health_subtree(inputs, path_nodes, prefix="L_")
+            return traverse_health_subtree(inputs, path_nodes, prefix="L")
 
-def traverse_health_subtree(inputs, path_nodes, prefix=""):
+def traverse_health_subtree(inputs, path_nodes, prefix="R"):
     path_nodes.append(f"Marital ? ({prefix})")
     if is_yes(inputs['marital']):
-        path_nodes.append(f"Depress ({prefix}Marital)")
+        path_nodes.append(f"Depress ({prefix}_Marital)")
         return "Depress", path_nodes
     
     path_nodes.append(f"Anxiety ? ({prefix})")
     if is_yes(inputs['anxiety']):
-        path_nodes.append(f"Depress ({prefix}Anxiety)")
+        path_nodes.append(f"Depress ({prefix}_Anxiety)")
         return "Depress", path_nodes
     
     path_nodes.append(f"Panic ? ({prefix})")
     if is_yes(inputs['panic']):
-        path_nodes.append(f"Depress ({prefix}Panic)")
+        path_nodes.append(f"Depress ({prefix}_Panic)")
         return "Depress", path_nodes
     
     path_nodes.append(f"Treatment ? ({prefix})")
     if is_yes(inputs['treatment']):
-        path_nodes.append(f"Depress ({prefix}Treatment)")
+        path_nodes.append(f"Depress ({prefix}_Treatment)")
         return "Depress", path_nodes
     else:
-        path_nodes.append(f"No Depress ({prefix}Treatment)")
+        path_nodes.append(f"No Depress ({prefix}_Treatment)")
         return "No Depress", path_nodes
 
 # --- Matplotlib Decision Tree Plotter ---
 def render_matplotlib_tree(active_path):
     G = nx.DiGraph()
 
-    # Coordinates matching layout
+    # Exact coordinates matching network layout
     pos = {
         # Root
         "age >= 20 ?": (0, 7),
@@ -115,7 +109,7 @@ def render_matplotlib_tree(active_path):
         "No Depress (R_Treatment)": (-8, 0)
     }
 
-    # Labels for visualization
+    # Display Labels
     labels = {
         "age >= 20 ?": "age >= 20 ?",
         "CGPA <= 2.0 ? (L)": "CGPA <= 2.0 ?",
@@ -182,7 +176,7 @@ def render_matplotlib_tree(active_path):
 
     fig, ax = plt.subplots(figsize=(18, 10))
 
-    # Highlight active path
+    # Highlight nodes along active path
     node_border_colors = ['red' if node in active_path else 'black' for node in G.nodes()]
     node_widths = [3.0 if node in active_path else 1.0 for node in G.nodes()]
 
@@ -238,8 +232,6 @@ col1, col2 = st.columns(2)
 
 with col1:
     age = st.number_input("Age", min_value=17, max_value=30, value=20)
-    
-    # Enforcing strict numeric/float input for CGPA
     cgpa = st.number_input(
         "Enter CGPA (0.00 to 4.00)", 
         min_value=0.0, 
@@ -248,7 +240,6 @@ with col1:
         step=0.01, 
         format="%.2f"
     )
-    
     year_str = st.selectbox("Year of Study", ["Year 1", "Year 2", "Year 3", "Year 4"], index=0)
     marital = st.selectbox("Marital Status", ["No", "Yes"])
 
@@ -275,7 +266,6 @@ if st.button("Predict Mental Health Status", type="primary"):
     else:
         st.success(f"Prediction Result: **{prediction.upper()}** (Low indication of Depression)")
 
-    # Render Matplotlib Decision Tree
     st.subheader("Decision Tree Model Flow")
     fig = render_matplotlib_tree(path_taken)
     st.pyplot(fig)
