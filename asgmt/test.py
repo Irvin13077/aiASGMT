@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import os
-from sklearn.tree import DecisionTreeClassifier
+import matplotlib.pyplot as plt
+from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 
@@ -88,7 +89,7 @@ try:
         selected = st.selectbox(f"Select {col}", options)
         user_inputs[col] = label_encoders[col].transform([selected])[0]
 
-    # 3. Prediction Button
+    # 3. Prediction Button & Visualization
     if st.button("Predict Mental Health Status", type="primary"):
         # Explicitly re-order the columns to match feature_cols
         input_df = pd.DataFrame([user_inputs])[feature_cols]
@@ -96,10 +97,41 @@ try:
         prediction_encoded = model.predict(input_df)[0]
         prediction = target_le.inverse_transform([prediction_encoded])[0]
 
-        if prediction.lower() == 'yes':
+        # Display Text Results
+        if str(prediction).lower() == 'yes':
             st.error(f"Prediction Result: **{prediction.upper()}** (High indication of Depression)")
         else:
             st.success(f"Prediction Result: **{prediction.upper()}** (Low indication of Depression)")
+
+        # 4. Matplotlib Decision Tree Flow Visualization
+        st.subheader("Decision Tree Model Flow")
+        
+        # Determine node path for current user input
+        node_indicator = model.decision_path(input_df)
+        leaf_id = model.apply(input_df)[0]
+        node_index = node_indicator.indices[node_indicator.indptr[0]:node_indicator.indptr[1]]
+
+        # Render tree layout with matplotlib
+        fig, ax = plt.subplots(figsize=(20, 10))
+        annotations = plot_tree(
+            model,
+            feature_names=feature_cols,
+            class_names=[str(c) for c in target_le.classes_],
+            filled=True,
+            rounded=True,
+            fontsize=8,
+            ax=ax
+        )
+
+        # Highlight path taken by user's input in red
+        for i, node_id in enumerate(node_index):
+            bbox = annotations[node_id].get_bbox_patch()
+            if bbox is not None:
+                bbox.set_edgecolor('red')
+                bbox.set_linewidth(3)
+
+        plt.title("Decision Tree Flow (Red border highlights the path for current input)", fontsize=14)
+        st.pyplot(fig)
 
 except Exception as e:
     st.error(f"Error loading dataset or model: {e}")
