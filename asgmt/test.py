@@ -10,14 +10,7 @@ st.set_page_config(page_title="Student Mental Health Predictor", layout="wide")
 st.title("Student Mental Health Prediction System")
 st.write("Predict likelihood of depression using the custom Decision Tree flow.")
 
-# --- Helper Functions for Parsing Inputs ---
-def parse_cgpa(val):
-    if pd.isna(val):
-        return 3.0
-    val_str = str(val).strip()
-    numbers = [float(x) for x in re.findall(r"[-+]?\d*\.\d+|\d+", val_str)]
-    return sum(numbers) / len(numbers) if numbers else 3.0
-
+# --- Helper Functions ---
 def parse_year(val):
     if pd.isna(val):
         return 1
@@ -245,7 +238,17 @@ col1, col2 = st.columns(2)
 
 with col1:
     age = st.number_input("Age", min_value=17, max_value=30, value=20)
-    cgpa_str = st.selectbox("CGPA Range", ["0 - 1.99", "2.00 - 2.49", "2.50 - 2.99", "3.00 - 3.49", "3.50 - 4.00"], index=3)
+    
+    # Strictly enforce numeric/float input for CGPA
+    cgpa = st.number_input(
+        "Enter CGPA (0.00 to 4.00)", 
+        min_value=0.0, 
+        max_value=4.0, 
+        value=3.25, 
+        step=0.01, 
+        format="%.2f"
+    )
+    
     year_str = st.selectbox("Year of Study", ["Year 1", "Year 2", "Year 3", "Year 4"], index=0)
     marital = st.selectbox("Marital Status", ["No", "Yes"])
 
@@ -257,7 +260,7 @@ with col2:
 if st.button("Predict Mental Health Status", type="primary"):
     parsed_inputs = {
         'age': age,
-        'cgpa': parse_cgpa(cgpa_str),
+        'cgpa': cgpa,
         'year': parse_year(year_str),
         'marital': marital,
         'anxiety': anxiety,
