@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import os
-from sklearn.tree import DecisionTreeClassifier
+import graphviz
+from sklearn.tree import DecisionTreeClassifier, export_graphviz
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 
@@ -100,51 +101,52 @@ try:
             st.success(f"Prediction Result: **{prediction.upper()}** (Low indication of Depression)")
 
         # ---------------------------------------------------------
-        # 4. Decision Tree Flow Step-by-Step
+        # 4. Highlighted Decision Tree Model (Graphviz)
         # ---------------------------------------------------------
-        st.subheader("🌲 Decision Tree Process Flow")
+        st.subheader("🌲 Decision Tree Model Flow")
 
+        # Get active node path for the user input
         node_indicator = model.decision_path(input_df)
-        leaf_id = model.apply(input_df)[0]
-        node_index = node_indicator.indices[node_indicator.indptr[0]:node_indicator.indptr[1]]
+        active_nodes = set(node_indicator.indices)
 
-        tree = model.tree_
+        # Export raw DOT graph string from sklearn
+        dot_data = export_graphviz(
+            model,
+            out_file=None,
+            feature_names=feature_cols,
+            class_names=target_le.classes_,
+            filled=True,
+            rounded=True,
+            special_characters=True
+        )
 
-        for step_num, node_id in enumerate(node_index, 1):
-            if node_id == leaf_id:
-                # Final Leaf Node
-                predicted_class = target_le.inverse_transform([tree.value[node_id].argmax()])[0]
-                samples = tree.n_node_samples[node_id]
-                st.info(
-                    f"**Step {step_num} (Final Leaf Node {node_id})**\n\n"
-                    f"Reached final decision leaf with **{samples} training samples**.\n\n"
-                    f"👉 **Predicted Outcome**: **{predicted_class.upper()}**"
-                )
-            else:
-                # Decision Node
-                feature_idx = tree.feature[node_id]
-                feature_name = feature_cols[feature_idx]
-                threshold = tree.threshold[node_id]
-                val = input_df[feature_name].values[0]
+        # Highlight user traversal path in red
+        graph = graphviz.Source(dot_data)
+        dot_lines = dot_data.splitlines()
+        highlighted_lines = []
 
-                condition_met = val <= threshold
-                direction = "LEFT ⬅️" if condition_met else "RIGHT ➡️"
-                comparison_str = "<=" if condition_met else ">"
+        for line in dot_lines:
+            # Highlight decision node
+            for node_id in active_nodes:
+                if line.strip().startswith(f"{node_id} [label="):
+                    line = line.replace('color="black"', 'color="red", penwidth=3')
+                    line = line.replace('fillcolor=', 'fillcolor="#ffcccc", old_fillcolor=')
+                    break
+            
+            # Highlight edge between active nodes
+            if "->" in line:
+                parts = line.split("->")
+                parent = int(parts[0].strip())
+                child = int(parts[1].split()[0].strip())
+                if parent in active_nodes and child in active_nodes:
+                    line = line.replace("];", ', color="red", penwidth=3.0];')
 
-                if feature_name in label_encoders:
-                    human_val = label_encoders[feature_name].inverse_transform([val])[0]
-                    st.markdown(
-                        f"**Step {step_num} (Node {node_id})**: Evaluating `{feature_name}`\n"
-                        f"- Your Selection: **'{human_val}'** (Encoded value: {val})\n"
-                        f"- Condition: `{val} {comparison_str} {threshold:.2f}` ➔ **Follow {direction} Branch**"
-                    )
-                else:
-                    st.markdown(
-                        f"**Step {step_num} (Node {node_id})**: Evaluating `{feature_name}`\n"
-                        f"- Your Input: **{val}**\n"
-                        f"- Condition: `{val} {comparison_str} {threshold:.2f}` ➔ **Follow {direction} Branch**"
-                    )
-                st.divider()
+            highlighted_lines.append(line)
+
+        highlighted_dot = "\n".join(highlighted_lines)
+
+        # Display interactive Graphviz tree chart
+        st.graphviz_chart(highlighted_dot, use_container_width=True)
 
 except Exception as e:
     st.error(f"Error loading dataset or model: {e}")
