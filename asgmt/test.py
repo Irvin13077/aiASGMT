@@ -25,7 +25,6 @@ def load_and_prep_data():
         df[col] = df[col].astype(str).str.strip()
 
     df['Your current year of Study'] = df['Your current year of Study'].str.lower()
-    df['What is your course?'] = df['What is your course?'].str.lower()
 
     # Handle missing age
     df['Age'] = pd.to_numeric(df['Age'], errors='coerce')
@@ -37,10 +36,11 @@ try:
     df = load_and_prep_data()
 
     target_col = 'Do you have Depression?'
+    
+    # Excluded 'What is your course?' to prevent arbitrary label-encoded splits
     feature_cols = [
         'Choose your gender', 
         'Age', 
-        'What is your course?', 
         'Your current year of Study', 
         'What is your CGPA?', 
         'Marital status', 
@@ -64,7 +64,7 @@ try:
     X_train, X_test, y_train, y_test = train_test_split(
         X, y_encoded, test_size=0.2, random_state=42
     )
-    model = DecisionTreeClassifier(criterion='gini', max_depth=5, random_state=42)
+    model = DecisionTreeClassifier(criterion='gini', max_depth=4, random_state=42)
     model.fit(X_train, y_train)
 
     # 2. Interactive Input UI
@@ -72,7 +72,6 @@ try:
     
     user_inputs = {}
 
-    # Age input validated strictly between 18 and 24
     user_inputs['Age'] = st.number_input(
         "Age (18 to 24)", 
         min_value=18, 
@@ -101,16 +100,14 @@ try:
             st.success(f"Prediction Result: **{prediction.upper()}** (Low indication of Depression)")
 
         # ---------------------------------------------------------
-        # 4. Decision Tree Flow Diagram using Matplotlib
+        # 4. Decision Tree Flow Diagram
         # ---------------------------------------------------------
         st.subheader("🌲 Decision Tree Process Flow")
 
-        # Determine the traversed decision path for the user input
         node_indicator = model.decision_path(input_df)
         active_nodes = set(node_indicator.indices)
 
-        # Plot tree with matplotlib
-        fig, ax = plt.subplots(figsize=(16, 9))
+        fig, ax = plt.subplots(figsize=(14, 8))
         annotations = plot_tree(
             model,
             feature_names=feature_cols,
@@ -118,10 +115,10 @@ try:
             filled=True,
             rounded=True,
             ax=ax,
-            fontsize=7
+            fontsize=8
         )
 
-        # Highlight user traversal path nodes in bold red
+        # Highlight user path in red
         for i, ann in enumerate(annotations):
             if i in active_nodes:
                 bbox = ann.get_bbox_patch()
