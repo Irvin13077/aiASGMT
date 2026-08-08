@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 import os
-import graphviz
-from sklearn.tree import DecisionTreeClassifier, export_graphviz
+import matplotlib.pyplot as plt
+from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 
@@ -101,52 +101,35 @@ try:
             st.success(f"Prediction Result: **{prediction.upper()}** (Low indication of Depression)")
 
         # ---------------------------------------------------------
-        # 4. Highlighted Decision Tree Model (Graphviz)
+        # 4. Decision Tree Flow Diagram using Matplotlib
         # ---------------------------------------------------------
-        st.subheader("🌲 Decision Tree Model Flow")
+        st.subheader("🌲 Decision Tree Process Flow")
 
-        # Get active node path for the user input
+        # Determine the traversed decision path for the user input
         node_indicator = model.decision_path(input_df)
         active_nodes = set(node_indicator.indices)
 
-        # Export raw DOT graph string from sklearn
-        dot_data = export_graphviz(
+        # Plot tree with matplotlib
+        fig, ax = plt.subplots(figsize=(16, 9))
+        annotations = plot_tree(
             model,
-            out_file=None,
             feature_names=feature_cols,
             class_names=target_le.classes_,
             filled=True,
             rounded=True,
-            special_characters=True
+            ax=ax,
+            fontsize=7
         )
 
-        # Highlight user traversal path in red
-        graph = graphviz.Source(dot_data)
-        dot_lines = dot_data.splitlines()
-        highlighted_lines = []
+        # Highlight user traversal path nodes in bold red
+        for i, ann in enumerate(annotations):
+            if i in active_nodes:
+                bbox = ann.get_bbox_patch()
+                if bbox is not None:
+                    bbox.set_edgecolor('red')
+                    bbox.set_linewidth(3.0)
 
-        for line in dot_lines:
-            # Highlight decision node
-            for node_id in active_nodes:
-                if line.strip().startswith(f"{node_id} [label="):
-                    line = line.replace('color="black"', 'color="red", penwidth=3')
-                    line = line.replace('fillcolor=', 'fillcolor="#ffcccc", old_fillcolor=')
-                    break
-            
-            # Highlight edge between active nodes
-            if "->" in line:
-                parts = line.split("->")
-                parent = int(parts[0].strip())
-                child = int(parts[1].split()[0].strip())
-                if parent in active_nodes and child in active_nodes:
-                    line = line.replace("];", ', color="red", penwidth=3.0];')
-
-            highlighted_lines.append(line)
-
-        highlighted_dot = "\n".join(highlighted_lines)
-
-        # Display interactive Graphviz tree chart
-        st.graphviz_chart(highlighted_dot, use_container_width=True)
+        st.pyplot(fig)
 
 except Exception as e:
     st.error(f"Error loading dataset or model: {e}")
