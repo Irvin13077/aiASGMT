@@ -31,14 +31,14 @@ def is_yes(val):
 # --- Custom Decision Tree Logic ---
 def predict_custom_tree(inputs):
     """
-    Evaluates exact logic from the flowchart image:
+    Evaluates exact logic from the updated flowchart image:
     Right branch = True, Left branch = False
     """
     path_nodes = []
     
-    # Root: Age
-    path_nodes.append("age <= 19 ?")
-    if inputs['age'] <= 19:
+    # Root: Age >= 20 ?
+    path_nodes.append("age >= 20 ?")
+    if inputs['age'] >= 20:
         # Node: R_Year
         path_nodes.append("Year of Study <= 2 ? (R)")
         if inputs['year'] <= 2:
@@ -88,12 +88,12 @@ def traverse_health_subtree(inputs, path_nodes, prefix=""):
 def render_matplotlib_tree(active_path):
     G = nx.DiGraph()
 
-    # Pre-defined node labels and explicit coordinates (x, y) to mirror flowchart layout
+    # Coordinates matching layout
     pos = {
         # Root
-        "age <= 19 ?": (0, 7),
+        "age >= 20 ?": (0, 7),
         
-        # Left Branch (Age <= 19 False)
+        # Left Branch (Age >= 20 False)
         "CGPA <= 2.0 ? (L)": (-4, 6),
         "Depress (L_CGPA)": (-2, 5),
         "Marital ? (L)": (-6, 5),
@@ -106,7 +106,7 @@ def render_matplotlib_tree(active_path):
         "Depress (L_Treatment)": (-10, 1),
         "No Depress (L_Treatment)": (-14, 1),
 
-        # Right Branch (Age <= 19 True)
+        # Right Branch (Age >= 20 True)
         "Year of Study <= 2 ? (R)": (4, 6),
         "Depress (R_Year)": (8, 5),
         "CGPA <= 2.0 ? (R)": (2, 5),
@@ -122,9 +122,9 @@ def render_matplotlib_tree(active_path):
         "No Depress (R_Treatment)": (-8, 0)
     }
 
-    # Clean display labels without internally unique IDs
+    # Labels for visualization
     labels = {
-        "age <= 19 ?": "age <= 19 ?",
+        "age >= 20 ?": "age >= 20 ?",
         "CGPA <= 2.0 ? (L)": "CGPA <= 2.0 ?",
         "Depress (L_CGPA)": "Depress",
         "Marital ? (L)": "Marital ?",
@@ -133,7 +133,7 @@ def render_matplotlib_tree(active_path):
         "Depress (L_Anxiety)": "Depress",
         "Panic ? (L)": "Panic ?",
         "Depress (L_Panic)": "Depress",
-        "Treatment ? (L)": "Treatment ?",
+        "Treatment ? (L)": "Threatment ?",
         "Depress (L_Treatment)": "Depress",
         "No Depress (L_Treatment)": "No Depress",
 
@@ -147,15 +147,15 @@ def render_matplotlib_tree(active_path):
         "Depress (R_Anxiety)": "Depress",
         "Panic ? (R)": "Panic ?",
         "Depress (R_Panic)": "Depress",
-        "Treatment ? (R)": "Treatment ?",
+        "Treatment ? (R)": "Threatment ?",
         "Depress (R_Treatment)": "Depress",
         "No Depress (R_Treatment)": "No Depress"
     }
 
     edges = [
         # Root splits
-        ("age <= 19 ?", "CGPA <= 2.0 ? (L)", "False"),
-        ("age <= 19 ?", "Year of Study <= 2 ? (R)", "True"),
+        ("age >= 20 ?", "CGPA <= 2.0 ? (L)", "False"),
+        ("age >= 20 ?", "Year of Study <= 2 ? (R)", "True"),
 
         # Left Subtree splits
         ("CGPA <= 2.0 ? (L)", "Depress (L_CGPA)", "True"),
@@ -189,7 +189,7 @@ def render_matplotlib_tree(active_path):
 
     fig, ax = plt.subplots(figsize=(18, 10))
 
-    # Determine node outline colors based on user input traversal path
+    # Highlight active path
     node_border_colors = ['red' if node in active_path else 'black' for node in G.nodes()]
     node_widths = [3.0 if node in active_path else 1.0 for node in G.nodes()]
 
@@ -207,7 +207,7 @@ def render_matplotlib_tree(active_path):
     # Draw Labels
     nx.draw_networkx_labels(G, pos, labels=labels, font_size=8, font_family="sans-serif", ax=ax)
 
-    # Determine edge colors (highlight active path transitions in red)
+    # Highlight active path edges
     edge_colors = []
     edge_widths = []
     for u, v in G.edges():
