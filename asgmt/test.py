@@ -13,7 +13,6 @@ st.write("Predict likelihood of depression using a Decision Tree model.")
 # 1. Load Data
 @st.cache_data
 def load_and_prep_data():
-    # Dynamically build path relative to this script file
     script_dir = os.path.dirname(os.path.abspath(__file__))
     file_path = os.path.join(script_dir, 'Student Mental health.csv')
     
@@ -91,7 +90,9 @@ try:
 
     # 3. Prediction Button
     if st.button("Predict Mental Health Status", type="primary"):
-        input_df = pd.DataFrame([user_inputs])
+        # Explicitly re-order the columns to match feature_cols
+        input_df = pd.DataFrame([user_inputs])[feature_cols]
+        
         prediction_encoded = model.predict(input_df)[0]
         prediction = target_le.inverse_transform([prediction_encoded])[0]
 
