@@ -1,229 +1,72 @@
 import streamlit as st
 import pandas as pd
-import os
-import re
+import numpy as np
 import matplotlib.pyplot as plt
-import networkx as nx
+from sklearn.tree import DecisionTreeClassifier, plot_tree
 
 st.set_page_config(page_title="Student Mental Health Predictor", layout="wide")
 
 st.title("Student Mental Health Prediction System")
-st.write("Predict likelihood of depression using the custom Decision Tree flow.")
+st.write("Predict likelihood of depression using a trained Machine Learning Decision Tree model.")
 
 # --- Helper Functions ---
 def parse_year(val):
     if pd.isna(val):
         return 1
-    val_str = str(val).lower()
-    numbers = re.findall(r"\d+", val_str)
+    import re
+    numbers = re.findall(r"\d+", str(val))
     return int(numbers[0]) if numbers else 1
 
-def is_yes(val):
-    return str(val).strip().lower() == "yes"
+def encode_binary(val):
+    return 1 if str(val).strip().lower() == "yes" else 0
 
-# --- Custom Decision Tree Logic ---
-def predict_custom_tree(inputs):
-    path_nodes = []
+# --- Model Training (scikit-learn) ---
+@st.cache_resource
+def train_decision_tree_model():
+    """
+    Creates sample dataset (or load your real CSV here) and trains 
+    a real scikit-learn Decision Tree model.
+    """
+    # Replace this block with pd.read_csv('your_dataset.csv') if you have a CSV file
+    np.random.seed(42)
+    n_samples = 200
     
-    # Root: Age >= 20 ?
-    path_nodes.append("age >= 20 ?")
-    if inputs['age'] >= 20:
-        path_nodes.append("Year of Study >= 3 ? (R)")
-        if inputs['year'] >= 3:
-            path_nodes.append("Depress (R_Year)")
-            return "Depress", path_nodes
-        else:
-            path_nodes.append("CGPA <= 2.0 ? (R)")
-            if inputs['cgpa'] <= 2.0:
-                path_nodes.append("Depress (R_CGPA)")
-                return "Depress", path_nodes
-            else:
-                return traverse_health_subtree(inputs, path_nodes, prefix="R")
-    else:
-        path_nodes.append("CGPA <= 2.0 ? (L)")
-        if inputs['cgpa'] <= 2.0:
-            path_nodes.append("Depress (L_CGPA)")
-            return "Depress", path_nodes
-        else:
-            return traverse_health_subtree(inputs, path_nodes, prefix="L")
-
-def traverse_health_subtree(inputs, path_nodes, prefix="R"):
-    path_nodes.append(f"Marital ? ({prefix})")
-    if is_yes(inputs['marital']):
-        path_nodes.append(f"Depress ({prefix}_Marital)")
-        return "Depress", path_nodes
-    
-    path_nodes.append(f"Anxiety ? ({prefix})")
-    if is_yes(inputs['anxiety']):
-        path_nodes.append(f"Depress ({prefix}_Anxiety)")
-        return "Depress", path_nodes
-    
-    path_nodes.append(f"Panic ? ({prefix})")
-    if is_yes(inputs['panic']):
-        path_nodes.append(f"Depress ({prefix}_Panic)")
-        return "Depress", path_nodes
-    
-    path_nodes.append(f"Treatment ? ({prefix})")
-    if is_yes(inputs['treatment']):
-        path_nodes.append(f"Depress ({prefix}_Treatment)")
-        return "Depress", path_nodes
-    else:
-        path_nodes.append(f"No Depress ({prefix}_Treatment)")
-        return "No Depress", path_nodes
-
-# --- Matplotlib Decision Tree Plotter ---
-def render_matplotlib_tree(active_path):
-    G = nx.DiGraph()
-
-    # Exact coordinates matching network layout
-    pos = {
-        # Root
-        "age >= 20 ?": (0, 7),
-        
-        # Left Branch (Age >= 20 False)
-        "CGPA <= 2.0 ? (L)": (-4, 6),
-        "Depress (L_CGPA)": (-2, 5),
-        "Marital ? (L)": (-6, 5),
-        "Depress (L_Marital)": (-4, 4),
-        "Anxiety ? (L)": (-8, 4),
-        "Depress (L_Anxiety)": (-6, 3),
-        "Panic ? (L)": (-10, 3),
-        "Depress (L_Panic)": (-8, 2),
-        "Treatment ? (L)": (-12, 2),
-        "Depress (L_Treatment)": (-10, 1),
-        "No Depress (L_Treatment)": (-14, 1),
-
-        # Right Branch (Age >= 20 True)
-        "Year of Study >= 3 ? (R)": (4, 6),
-        "Depress (R_Year)": (8, 5),
-        "CGPA <= 2.0 ? (R)": (2, 5),
-        "Depress (R_CGPA)": (4, 4),
-        "Marital ? (R)": (0, 4),
-        "Depress (R_Marital)": (2, 3),
-        "Anxiety ? (R)": (-2, 3),
-        "Depress (R_Anxiety)": (0, 2),
-        "Panic ? (R)": (-4, 2),
-        "Depress (R_Panic)": (-2, 1),
-        "Treatment ? (R)": (-6, 1),
-        "Depress (R_Treatment)": (-4, 0),
-        "No Depress (R_Treatment)": (-8, 0)
+    sample_data = {
+        'age': np.random.randint(18, 26, size=n_samples),
+        'cgpa': np.round(np.random.uniform(1.5, 4.0, size=n_samples), 2),
+        'year': np.random.randint(1, 5, size=n_samples),
+        'marital': np.random.choice([0, 1], size=n_samples, p=[0.85, 0.15]),
+        'anxiety': np.random.choice([0, 1], size=n_samples, p=[0.70, 0.30]),
+        'panic': np.random.choice([0, 1], size=n_samples, p=[0.75, 0.25]),
+        'treatment': np.random.choice([0, 1], size=n_samples, p=[0.80, 0.20]),
     }
-
-    # Display Labels
-    labels = {
-        "age >= 20 ?": "age >= 20 ?",
-        "CGPA <= 2.0 ? (L)": "CGPA <= 2.0 ?",
-        "Depress (L_CGPA)": "Depress",
-        "Marital ? (L)": "Marital ?",
-        "Depress (L_Marital)": "Depress",
-        "Anxiety ? (L)": "Anxiety ?",
-        "Depress (L_Anxiety)": "Depress",
-        "Panic ? (L)": "Panic ?",
-        "Depress (L_Panic)": "Depress",
-        "Treatment ? (L)": "Threatment ?",
-        "Depress (L_Treatment)": "Depress",
-        "No Depress (L_Treatment)": "No Depress",
-
-        "Year of Study >= 3 ? (R)": "Year of Study >= 3 ?",
-        "Depress (R_Year)": "Depress",
-        "CGPA <= 2.0 ? (R)": "CGPA <= 2.0 ?",
-        "Depress (R_CGPA)": "Depress",
-        "Marital ? (R)": "Marital ?",
-        "Depress (R_Marital)": "Depress",
-        "Anxiety ? (R)": "Anxiety ?",
-        "Depress (R_Anxiety)": "Depress",
-        "Panic ? (R)": "Panic ?",
-        "Depress (R_Panic)": "Depress",
-        "Treatment ? (R)": "Threatment ?",
-        "Depress (R_Treatment)": "Depress",
-        "No Depress (R_Treatment)": "No Depress"
-    }
-
-    edges = [
-        # Root splits
-        ("age >= 20 ?", "CGPA <= 2.0 ? (L)", "False"),
-        ("age >= 20 ?", "Year of Study >= 3 ? (R)", "True"),
-
-        # Left Subtree splits
-        ("CGPA <= 2.0 ? (L)", "Depress (L_CGPA)", "True"),
-        ("CGPA <= 2.0 ? (L)", "Marital ? (L)", "False"),
-        ("Marital ? (L)", "Depress (L_Marital)", "True"),
-        ("Marital ? (L)", "Anxiety ? (L)", "False"),
-        ("Anxiety ? (L)", "Depress (L_Anxiety)", "True"),
-        ("Anxiety ? (L)", "Panic ? (L)", "False"),
-        ("Panic ? (L)", "Depress (L_Panic)", "True"),
-        ("Panic ? (L)", "Treatment ? (L)", "False"),
-        ("Treatment ? (L)", "Depress (L_Treatment)", "True"),
-        ("Treatment ? (L)", "No Depress (L_Treatment)", "False"),
-
-        # Right Subtree splits
-        ("Year of Study >= 3 ? (R)", "Depress (R_Year)", "True"),
-        ("Year of Study >= 3 ? (R)", "CGPA <= 2.0 ? (R)", "False"),
-        ("CGPA <= 2.0 ? (R)", "Depress (R_CGPA)", "True"),
-        ("CGPA <= 2.0 ? (R)", "Marital ? (R)", "False"),
-        ("Marital ? (R)", "Depress (R_Marital)", "True"),
-        ("Marital ? (R)", "Anxiety ? (R)", "False"),
-        ("Anxiety ? (R)", "Depress (R_Anxiety)", "True"),
-        ("Anxiety ? (R)", "Panic ? (R)", "False"),
-        ("Panic ? (R)", "Depress (R_Panic)", "True"),
-        ("Panic ? (R)", "Treatment ? (R)", "False"),
-        ("Treatment ? (R)", "Depress (R_Treatment)", "True"),
-        ("Treatment ? (R)", "No Depress (R_Treatment)", "False"),
-    ]
-
-    for u, v, w in edges:
-        G.add_edge(u, v, label=w)
-
-    fig, ax = plt.subplots(figsize=(18, 10))
-
-    # Highlight nodes along active path
-    node_border_colors = ['red' if node in active_path else 'black' for node in G.nodes()]
-    node_widths = [3.0 if node in active_path else 1.0 for node in G.nodes()]
-
-    # Draw Nodes
-    nx.draw_networkx_nodes(
-        G, pos,
-        node_shape='s',
-        node_size=4200,
-        node_color='white',
-        edgecolors=node_border_colors,
-        linewidths=node_widths,
-        ax=ax
+    
+    df = pd.DataFrame(sample_data)
+    
+    # Target rule simulation for synthetic dataset training
+    # High anxiety/panic/low CGPA increases probability of Depression label
+    depression_score = (
+        (df['cgpa'] <= 2.2).astype(int) * 2 +
+        df['anxiety'] * 2 +
+        df['panic'] * 2 +
+        df['treatment'] * 1 +
+        (df['year'] >= 3).astype(int) * 1
     )
+    df['depression'] = (depression_score >= 3).astype(int)
+    
+    # Define features (X) and target (y)
+    feature_cols = ['age', 'cgpa', 'year', 'marital', 'anxiety', 'panic', 'treatment']
+    X = df[feature_cols]
+    y = df['depression']
+    
+    # Train the Machine Learning Model
+    clf = DecisionTreeClassifier(max_depth=4, random_state=42)
+    clf.fit(X, y)
+    
+    return clf, feature_cols
 
-    # Draw Labels
-    nx.draw_networkx_labels(G, pos, labels=labels, font_size=8, font_family="sans-serif", ax=ax)
-
-    # Highlight active path edges
-    edge_colors = []
-    edge_widths = []
-    for u, v in G.edges():
-        if u in active_path and v in active_path and active_path.index(v) == active_path.index(u) + 1:
-            edge_colors.append('red')
-            edge_widths.append(2.5)
-        else:
-            edge_colors.append('black')
-            edge_widths.append(1.0)
-
-    # Draw Edges
-    nx.draw_networkx_edges(
-        G, pos,
-        edgelist=G.edges(),
-        edge_color=edge_colors,
-        width=edge_widths,
-        arrows=True,
-        arrowsize=15,
-        ax=ax
-    )
-
-    # Draw Branch Labels (True / False)
-    edge_labels = nx.get_edge_attributes(G, 'label')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8, font_color='blue', ax=ax)
-
-    plt.title("Decision Tree Flowchart (Red border highlights the active user path)", fontsize=14, fontweight='bold')
-    plt.axis('off')
-    plt.tight_layout()
-    return fig
+# Train model once and cache
+model, feature_names = train_decision_tree_model()
 
 # --- User Input UI ---
 st.header("Enter Student Information")
@@ -249,23 +92,38 @@ with col2:
     treatment = st.selectbox("Did you seek Specialist Treatment?", ["No", "Yes"])
 
 if st.button("Predict Mental Health Status", type="primary"):
-    parsed_inputs = {
+    # Format inputs for model evaluation
+    input_data = pd.DataFrame([{
         'age': age,
         'cgpa': cgpa,
         'year': parse_year(year_str),
-        'marital': marital,
-        'anxiety': anxiety,
-        'panic': panic,
-        'treatment': treatment
-    }
+        'marital': encode_binary(marital),
+        'anxiety': encode_binary(anxiety),
+        'panic': encode_binary(panic),
+        'treatment': encode_binary(treatment)
+    }])[feature_names]
 
-    prediction, path_taken = predict_custom_tree(parsed_inputs)
+    # Make ML Prediction
+    prediction = model.predict(input_data)[0]
+    prediction_prob = model.predict_proba(input_data)[0][1]
 
-    if prediction == "Depress":
-        st.error(f"Prediction Result: **{prediction.upper()}** (High indication of Depression)")
+    if prediction == 1:
+        st.error(f"Prediction Result: **DEPRESSION DETECTED** (Probability: {prediction_prob:.0%})")
     else:
-        st.success(f"Prediction Result: **{prediction.upper()}** (Low indication of Depression)")
+        st.success(f"Prediction Result: **NO DEPRESSION DETECTED** (Probability: {prediction_prob:.0%})")
 
-    st.subheader("Decision Tree Model Flow")
-    fig = render_matplotlib_tree(path_taken)
+    st.subheader("Trained Decision Tree Visualization")
+    st.write("This diagram represents the actual decision rules learned automatically by the model from data:")
+
+    # Render actual trained Tree from scikit-learn
+    fig, ax = plt.subplots(figsize=(16, 8))
+    plot_tree(
+        model, 
+        feature_names=feature_names, 
+        class_names=["No Depress", "Depress"], 
+        filled=True, 
+        rounded=True, 
+        fontsize=8,
+        ax=ax
+    )
     st.pyplot(fig)
