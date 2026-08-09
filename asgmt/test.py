@@ -27,7 +27,6 @@ def train_decision_tree_model():
     Creates sample dataset (or load your real CSV here) and trains 
     a real scikit-learn Decision Tree model.
     """
-    # Replace this block with pd.read_csv('your_dataset.csv') if you have a CSV file
     np.random.seed(42)
     n_samples = 200
     
@@ -44,7 +43,6 @@ def train_decision_tree_model():
     df = pd.DataFrame(sample_data)
     
     # Target rule simulation for synthetic dataset training
-    # High anxiety/panic/low CGPA increases probability of Depression label
     depression_score = (
         (df['cgpa'] <= 2.2).astype(int) * 2 +
         df['anxiety'] * 2 +
@@ -112,12 +110,16 @@ if st.button("Predict Mental Health Status", type="primary"):
     else:
         st.success(f"Prediction Result: **NO DEPRESSION DETECTED** (Probability: {prediction_prob:.0%})")
 
-    st.subheader("Trained Decision Tree Visualization")
-    st.write("This diagram represents the actual decision rules learned automatically by the model from data:")
+    st.subheader("Decision Flow Path Visualization")
+    st.write("The active evaluation path taken for this input is highlighted with a **thick red border**:")
 
-    # Render actual trained Tree from scikit-learn
+    # 1. Extract active node indices along the prediction path
+    node_indicator = model.decision_path(input_data)
+    active_nodes = set(node_indicator.indices)
+
+    # 2. Render base tree plot
     fig, ax = plt.subplots(figsize=(16, 8))
-    plot_tree(
+    annotations = plot_tree(
         model, 
         feature_names=feature_names, 
         class_names=["No Depress", "Depress"], 
@@ -126,4 +128,30 @@ if st.button("Predict Mental Health Status", type="primary"):
         fontsize=8,
         ax=ax
     )
+
+    # 3. Post-process plot elements to highlight traversed path vs inactive nodes
+    for i, annotation in enumerate(annotations):
+        if i in active_nodes:
+            # Highlight path nodes
+            annotation.get_bbox_patch().set_edgecolor("#FF0000")  # Bright Red border
+            annotation.get_bbox_patch().set_linewidth(3.5)
+            annotation.set_weight("bold")
+            annotation.set_alpha(1.0)
+        else:
+            # Dim inactive nodes
+            annotation.get_bbox_patch().set_alpha(0.25)
+            annotation.set_alpha(0.25)
+
+    # 4. Highlight connecting edges on active path
+    left_children = model.tree_.children_left
+    right_children = model.tree_.children_right
+
+    for artist in ax.get_children():
+        if hasattr(artist, 'get_path'):
+            for node_id in active_nodes:
+                left = left_children[node_id]
+                right = right_children[node_id]
+                if left in active_nodes or right in active_nodes:
+                    artist.set_linewidth(2.5)
+
     st.pyplot(fig)
