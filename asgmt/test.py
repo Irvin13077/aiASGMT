@@ -129,29 +129,21 @@ if st.button("Predict Mental Health Status", type="primary"):
         ax=ax
     )
 
-    # 3. Post-process plot elements to highlight traversed path vs inactive nodes
+    # 3. Post-process plot elements with defensive checks
     for i, annotation in enumerate(annotations):
+        bbox_patch = annotation.get_bbox_patch()
+        
         if i in active_nodes:
-            # Highlight path nodes
-            annotation.get_bbox_patch().set_edgecolor("#FF0000")  # Bright Red border
-            annotation.get_bbox_patch().set_linewidth(3.5)
+            # Highlight active path nodes
+            if bbox_patch is not None:
+                bbox_patch.set_edgecolor("#FF0000")  # Bright Red border
+                bbox_patch.set_linewidth(3.5)
             annotation.set_weight("bold")
             annotation.set_alpha(1.0)
         else:
             # Dim inactive nodes
-            annotation.get_bbox_patch().set_alpha(0.25)
+            if bbox_patch is not None:
+                bbox_patch.set_alpha(0.25)
             annotation.set_alpha(0.25)
-
-    # 4. Highlight connecting edges on active path
-    left_children = model.tree_.children_left
-    right_children = model.tree_.children_right
-
-    for artist in ax.get_children():
-        if hasattr(artist, 'get_path'):
-            for node_id in active_nodes:
-                left = left_children[node_id]
-                right = right_children[node_id]
-                if left in active_nodes or right in active_nodes:
-                    artist.set_linewidth(2.5)
 
     st.pyplot(fig)
