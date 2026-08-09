@@ -23,10 +23,6 @@ def encode_binary(val):
 # --- Model Training (scikit-learn) ---
 @st.cache_resource
 def train_decision_tree_model():
-    """
-    Creates sample dataset (or load your real CSV here) and trains 
-    a real scikit-learn Decision Tree model.
-    """
     np.random.seed(42)
     n_samples = 200
     
@@ -42,7 +38,6 @@ def train_decision_tree_model():
     
     df = pd.DataFrame(sample_data)
     
-    # Target rule simulation for synthetic dataset training
     depression_score = (
         (df['cgpa'] <= 2.2).astype(int) * 2 +
         df['anxiety'] * 2 +
@@ -52,12 +47,10 @@ def train_decision_tree_model():
     )
     df['depression'] = (depression_score >= 3).astype(int)
     
-    # Define features (X) and target (y)
     feature_cols = ['age', 'cgpa', 'year', 'marital', 'anxiety', 'panic', 'treatment']
     X = df[feature_cols]
     y = df['depression']
     
-    # Train the Machine Learning Model
     clf = DecisionTreeClassifier(max_depth=4, random_state=42)
     clf.fit(X, y)
     
@@ -72,22 +65,22 @@ st.header("Enter Student Information")
 col1, col2 = st.columns(2)
 
 with col1:
-    age = st.number_input("Age", min_value=17, max_value=30, value=20)
+    age = st.number_input("Age", min_value=17, max_value=30, value=22)
     cgpa = st.number_input(
         "Enter CGPA (0.00 to 4.00)", 
         min_value=0.0, 
         max_value=4.0, 
-        value=3.25, 
+        value=1.50, 
         step=0.01, 
         format="%.2f"
     )
-    year_str = st.selectbox("Year of Study", ["Year 1", "Year 2", "Year 3", "Year 4"], index=0)
-    marital = st.selectbox("Marital Status", ["No", "Yes"])
+    year_str = st.selectbox("Year of Study", ["Year 1", "Year 2", "Year 3", "Year 4"], index=2)
+    marital = st.selectbox("Marital Status", ["No", "Yes"], index=1)
 
 with col2:
-    anxiety = st.selectbox("Do you have Anxiety?", ["No", "Yes"])
-    panic = st.selectbox("Do you have Panic attack?", ["No", "Yes"])
-    treatment = st.selectbox("Did you seek Specialist Treatment?", ["No", "Yes"])
+    anxiety = st.selectbox("Do you have Anxiety?", ["No", "Yes"], index=0)
+    panic = st.selectbox("Do you have Panic attack?", ["No", "Yes"], index=0)
+    treatment = st.selectbox("Did you seek Specialist Treatment?", ["No", "Yes"], index=0)
 
 if st.button("Predict Mental Health Status", type="primary"):
     # Format inputs for model evaluation
@@ -111,13 +104,14 @@ if st.button("Predict Mental Health Status", type="primary"):
         st.success(f"Prediction Result: **NO DEPRESSION DETECTED** (Probability: {prediction_prob:.0%})")
 
     st.subheader("Decision Flow Path Visualization")
-    st.write("The active evaluation path taken for this input is highlighted with a **thick red border**:")
+    st.write("Left branch = **TRUE / YES**, Right branch = **FALSE / NO**.")
+    st.write("Active evaluation path is highlighted with a **thick red border**:")
 
-    # 1. Extract active node indices along the prediction path
+    # 1. Get exact active node indices from scikit-learn tree engine
     node_indicator = model.decision_path(input_data)
-    active_nodes = set(node_indicator.indices)
+    active_node_ids = set(node_indicator.indices)
 
-    # 2. Render base tree plot
+    # 2. Render base plot
     fig, ax = plt.subplots(figsize=(16, 8))
     annotations = plot_tree(
         model, 
@@ -129,21 +123,36 @@ if st.button("Predict Mental Health Status", type="primary"):
         ax=ax
     )
 
-    # 3. Post-process plot elements with defensive checks
-    for i, annotation in enumerate(annotations):
+    # 3. Map annotations using actual node indices derived from text content
+    # Extract sample counts or node values directly to ensure accurate indexing
+    for annotation in annotations:
+        text = annotation.get_text()
         bbox_patch = annotation.get_bbox_patch()
         
-        if i in active_nodes:
-            # Highlight active path nodes
+        # Determine node identity by testing if its printed attributes match active nodes
+        is_active = False
+        for node_id in active_node_ids:
+            n_samples = model.tree_.n_node_samples[node_id]
+            val = model.tree_.value[node_id]
+            
+            # Match text values rendered in node box
+            if f"samples = {n_samples}" in text:
+                # Disambiguate if duplicate sample numbers exist
+                val_str = f"value = [{int(val[0][0])}, {int(val[0][1])}]"
+                if val_str in text or f"value = {val[0].tolist()}" in text:
+                    is_active = True
+                    break
+
+        if is_active:
             if bbox_patch is not None:
-                bbox_patch.set_edgecolor("#FF0000")  # Bright Red border
+                bbox_patch.set_edgecolor("#FF0000")  # Red border
                 bbox_patch.set_linewidth(3.5)
+                bbox_patch.set_alpha(1.0)
             annotation.set_weight("bold")
             annotation.set_alpha(1.0)
         else:
-            # Dim inactive nodes
             if bbox_patch is not None:
-                bbox_patch.set_alpha(0.25)
-            annotation.set_alpha(0.25)
+                bbox_patch.set_alpha(0.15)
+            annotation.set_alpha(0.15)
 
     st.pyplot(fig)
